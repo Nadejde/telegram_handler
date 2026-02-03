@@ -26,13 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 class TelegramLoggingHandler(logging.Handler):
-    def __init__(self, bot_token: str, channel: Union[str, int], level=logging.NOTSET):
+    def __init__(self, bot_token: str, channel: Union[str, int], level=logging.NOTSET, message_thread_id: int):
         super().__init__(level)
         self._buffer = MessageBuffer(MAX_BUFFER_SIZE)
         self._stop_signal = RLock()
         self._writer_thread = None
         self._bot_token = bot_token
         self._channel = TelegramLoggingHandler._format_channel(channel)
+        self._message_thread_id = message_thread_id
         self._api_request_base = TelegramLoggingHandler._format_api(bot_token)
         self._validate_configuration()
         self._start_writer_thread()
@@ -73,7 +74,7 @@ class TelegramLoggingHandler(logging.Handler):
     )
     def write(self, message):
         url = API_SEND_MESSAGE_REQUEST.format(
-            api_request=self._api_request_base, channel_name=self._channel
+            api_request=self._api_request_base, channel_name=self._channel, message_thread_id=self._message_thread_id 
         )
         response = requests.post(url, data={"text": message})
         self._validate_api_response(response)
@@ -129,3 +130,4 @@ class TelegramLoggingHandler(logging.Handler):
         self._writer_thread = Thread(target=self._write_manager)
         self._writer_thread.daemon = True
         self._writer_thread.start()
+
